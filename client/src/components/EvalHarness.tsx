@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { ThumbsUp, ThumbsDown, Clock, Hash, Zap, Send, ArrowLeft } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Clock, Hash, Zap, Send, ArrowLeft, RefreshCw } from 'lucide-react';
 
 interface EvalResult {
   id: string;
@@ -333,14 +333,28 @@ const EvalHarness: React.FC = () => {
       {/* Results History */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            Complete Comparison History 
-            {loadingHistory ? (
-              <span className="text-sm font-normal text-muted-foreground ml-2">Loading...</span>
-            ) : (
-              <span className="text-sm font-normal text-muted-foreground ml-2">({results.length} total)</span>
-            )}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>
+              Complete Comparison History 
+              {loadingHistory ? (
+                <span className="text-sm font-normal text-muted-foreground ml-2">Loading...</span>
+              ) : (
+                <span className="text-sm font-normal text-muted-foreground ml-2">({results.length} total)</span>
+              )}
+            </CardTitle>
+            <Button
+              onClick={() => {
+                setLoadingHistory(true);
+                loadHistory();
+              }}
+              variant="outline"
+              size="sm"
+              disabled={loadingHistory}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loadingHistory ? 'animate-spin' : ''}`} />
+              Refresh Results
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loadingHistory ? (
