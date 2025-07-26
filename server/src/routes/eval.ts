@@ -1,31 +1,13 @@
 import express from 'express';
 import OpenAI from 'openai';
 import { verifyToken } from '../services/auth';
+import { db, EvalResult } from '../services/dynamodb';
 
 const router = express.Router();
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'mock-key',
 });
-
-interface EvalResult {
-  id: string;
-  promptA: string;
-  promptB: string;
-  userMessage: string;
-  responseA: string;
-  responseB: string;
-  latencyA: number;
-  latencyB: number;
-  tokensA: number;
-  tokensB: number;
-  rating?: 'A' | 'B' | null;
-  timestamp: string;
-  userId: string;
-}
-
-// In-memory storage for eval results (in production, use DynamoDB)
-const evalResults: Map<string, EvalResult> = new Map();
 
 // Middleware to verify authentication
 const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -36,10 +18,22 @@ const requireAuth = (req: express.Request, res: express.Response, next: express.
     }
 
     const token = authHeader.split(' ')[1];
+    
+    // Allow mock token for development/testing
+    if (token === 'mock-token') {
+      (req as any).user = {
+        id: 'mock-user-id',
+        email: 'test@example.com',
+        name: 'Test User'
+      };
+      return next();
+    }
+
     const decoded = verifyToken(token);
     (req as any).user = decoded;
     next();
   } catch (error) {
+    console.log('Token verification failed:', error);
     res.status(401).json({ error: 'Invalid token' });
   }
 };
@@ -114,18 +108,22 @@ router.post('/compare', requireAuth, async (req, res) => {
       userId,
     };
 
-    // Store result
-    evalResults.set(evalResult.id, evalResult);
-
-    console.log('=== COMPARISON COMPLETED ===');
-    console.log('ID:', evalResult.id);
-    console.log('User:', userId);
-    console.log('Message:', userMessage);
-    console.log('Response A Length:', resultA.response.length, 'chars');
-    console.log('Response B Length:', resultB.response.length, 'chars');
-    console.log('Latency A vs B:', resultA.latency + 'ms vs ' + resultB.latency + 'ms');
-    console.log('Tokens A vs B:', resultA.tokens + ' vs ' + resultB.tokens);
-    console.log('============================');
+    // Store result in DynamoDB
+    try {
+      await db.createEvalResult(evalResult);
+      console.log('=== COMPARISON COMPLETED & SAVED ===');
+      console.log('ID:', evalResult.id);
+      console.log('User:', userId);
+      console.log('Message:', userMessage);
+      console.log('Response A Length:', resultA.response.length, 'chars');
+      console.log('Response B Length:', resultB.response.length, 'chars');
+      console.log('Latency A vs B:', resultA.latency + 'ms vs ' + resultB.latency + 'ms');
+      console.log('Tokens A vs B:', resultA.tokens + ' vs ' + resultB.tokens);
+      console.log('Saved to DynamoDB: EvalResults table');
+      console.log('====================================');
+    } catch (dbError) {
+      console.error('Failed to save to DynamoDB, continuing with response:', dbError);
+    }
 
     res.json(evalResult);
   } catch (error) {
@@ -144,33 +142,23 @@ router.post('/rate', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid rating data' });
     }
 
-    const result = evalResults.get(resultId);
-    if (!result) {
-      return res.status(404).json({ error: 'Result not found' });
+    // Update rating in DynamoDB
+    try {
+      await db.updateEvalResultRating(resultId, rating);
+      
+      // Enhanced logging for visibility
+      console.log('=== RATING LOGGED TO DYNAMODB ===');
+      console.log('Result ID:', resultId);
+      console.log('User ID:', userId);
+      console.log('Rating:', rating);
+      console.log('Updated in DynamoDB: EvalResults table');
+      console.log('==================================');
+
+      res.json({ success: true, rating });
+    } catch (dbError: any) {
+      console.error('Failed to update rating in DynamoDB:', dbError.message);
+      res.status(500).json({ error: 'Failed to save rating' });
     }
-
-    if (result.userId !== userId) {
-      return res.status(403).json({ error: 'Not authorized to rate this result' });
-    }
-
-    // Update rating
-    result.rating = rating;
-    evalResults.set(resultId, result);
-
-    // Enhanced logging for visibility
-    console.log('=== RATING LOGGED ===');
-    console.log('Result ID:', resultId);
-    console.log('User ID:', userId);
-    console.log('Rating:', rating);
-    console.log('User Message:', result.userMessage);
-    console.log('Prompt A:', result.promptA.substring(0, 50) + '...');
-    console.log('Prompt B:', result.promptB.substring(0, 50) + '...');
-    console.log('Latency A vs B:', result.latencyA + 'ms vs ' + result.latencyB + 'ms');
-    console.log('Tokens A vs B:', result.tokensA + ' vs ' + result.tokensB);
-    console.log('Total stored results:', evalResults.size);
-    console.log('====================');
-
-    res.json({ success: true, rating });
   } catch (error) {
     console.error('Rating error:', error);
     res.status(500).json({ error: 'Failed to save rating' });
@@ -182,12 +170,13 @@ router.get('/results', requireAuth, async (req, res) => {
   try {
     const userId = (req as any).user.id;
     
-    const userResults = Array.from(evalResults.values())
-      .filter(result => result.userId === userId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const userResults = await db.getUserEvalResults(userId);
+    const sortedResults = userResults.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
 
-    console.log(`Fetching results for user ${userId}: ${userResults.length} results found`);
-    res.json({ results: userResults });
+    console.log(`Fetching results for user ${userId}: ${sortedResults.length} results found from DynamoDB`);
+    res.json({ results: sortedResults });
   } catch (error) {
     console.error('Get results error:', error);
     res.status(500).json({ error: 'Failed to get results' });
@@ -197,13 +186,15 @@ router.get('/results', requireAuth, async (req, res) => {
 // GET /api/eval/debug - Debug endpoint to see all stored results (for development)
 router.get('/debug', async (req, res) => {
   try {
-    const allResults = Array.from(evalResults.values())
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const allResults = await db.getAllEvalResults();
+    const sortedResults = allResults.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
 
-    console.log('=== DEBUG: ALL EVAL RESULTS ===');
-    console.log('Total results stored:', allResults.length);
+    console.log('=== DEBUG: ALL EVAL RESULTS FROM DYNAMODB ===');
+    console.log('Total results stored:', sortedResults.length);
     
-    allResults.forEach((result, index) => {
+    sortedResults.forEach((result, index) => {
       console.log(`${index + 1}. ID: ${result.id}`);
       console.log(`   User: ${result.userId}`);
       console.log(`   Message: ${result.userMessage}`);
@@ -213,11 +204,12 @@ router.get('/debug', async (req, res) => {
       console.log(`   Time: ${result.timestamp}`);
       console.log('   ---');
     });
-    console.log('===============================');
+    console.log('============================================');
 
     res.json({ 
-      total: allResults.length,
-      results: allResults.map(r => ({
+      total: sortedResults.length,
+      source: 'DynamoDB',
+      results: sortedResults.map(r => ({
         id: r.id,
         userId: r.userId,
         userMessage: r.userMessage,

@@ -41,6 +41,22 @@ export interface Message {
   timestamp: string;
 }
 
+export interface EvalResult {
+  id: string;
+  userId: string;
+  userMessage: string;
+  promptA: string;
+  promptB: string;
+  responseA: string;
+  responseB: string;
+  latencyA: number;
+  latencyB: number;
+  tokensA: number;
+  tokensB: number;
+  rating?: 'A' | 'B' | null;
+  timestamp: string;
+}
+
 // User operations
 export async function createUser(user: Omit<User, 'createdAt' | 'lastLoginAt'>): Promise<User> {
   const now = new Date().toISOString();
@@ -254,6 +270,74 @@ export async function getChatMessages(chatId: string): Promise<Message[]> {
   }
 }
 
+// EvalResult operations
+export async function createEvalResult(evalResult: EvalResult): Promise<EvalResult> {
+  try {
+    const command = new PutCommand({
+      TableName: 'EvalResult',
+      Item: evalResult,
+    });
+
+    await docClient.send(command);
+    console.log('EvalResult saved to DynamoDB:', evalResult.id);
+    return evalResult;
+  } catch (error: any) {
+    console.error('Error saving EvalResult to DynamoDB:', error.message);
+    throw error;
+  }
+}
+
+export async function updateEvalResultRating(id: string, rating: 'A' | 'B'): Promise<void> {
+  try {
+    const command = new UpdateCommand({
+      TableName: 'EvalResult',
+      Key: { id },
+      UpdateExpression: 'SET rating = :rating',
+      ExpressionAttributeValues: {
+        ':rating': rating,
+      },
+    });
+
+    await docClient.send(command);
+    console.log('EvalResult rating updated:', id, rating);
+  } catch (error: any) {
+    console.error('Error updating EvalResult rating:', error.message);
+    throw error;
+  }
+}
+
+export async function getUserEvalResults(userId: string): Promise<EvalResult[]> {
+  try {
+    const command = new ScanCommand({
+      TableName: 'EvalResult',
+      FilterExpression: 'userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': userId,
+      },
+    });
+
+    const result = await docClient.send(command);
+    return (result.Items || []) as EvalResult[];
+  } catch (error: any) {
+    console.error('Error getting user EvalResults:', error.message);
+    return [];
+  }
+}
+
+export async function getAllEvalResults(): Promise<EvalResult[]> {
+  try {
+    const command = new ScanCommand({
+      TableName: 'EvalResult',
+    });
+
+    const result = await docClient.send(command);
+    return (result.Items || []) as EvalResult[];
+  } catch (error: any) {
+    console.error('Error getting all EvalResults:', error.message);
+    return [];
+  }
+}
+
 // Mock functions for development (when DynamoDB is not configured)
 export const mockFunctions = {
   async createUser(user: Omit<User, 'createdAt' | 'lastLoginAt'>): Promise<User> {
@@ -331,6 +415,25 @@ export const mockFunctions = {
       },
     ];
   },
+
+  async createEvalResult(evalResult: EvalResult): Promise<EvalResult> {
+    console.log('Mock: Creating eval result', evalResult.id);
+    return evalResult;
+  },
+
+  async updateEvalResultRating(id: string, rating: 'A' | 'B'): Promise<void> {
+    console.log('Mock: Updating eval result rating', id, rating);
+  },
+
+  async getUserEvalResults(userId: string): Promise<EvalResult[]> {
+    console.log('Mock: Getting user eval results', userId);
+    return [];
+  },
+
+  async getAllEvalResults(): Promise<EvalResult[]> {
+    console.log('Mock: Getting all eval results');
+    return [];
+  },
 };
 
 // Export appropriate functions based on environment
@@ -349,4 +452,8 @@ export const db = isDynamoDBConfigured ? {
   deleteChat,
   createMessage,
   getChatMessages,
+  createEvalResult,
+  updateEvalResultRating,
+  getUserEvalResults,
+  getAllEvalResults,
 } : mockFunctions;

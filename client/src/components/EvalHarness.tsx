@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { ThumbsUp, ThumbsDown, Clock, Hash, Zap, Send } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Clock, Hash, Zap, Send, ArrowLeft } from 'lucide-react';
 
 interface EvalResult {
   id: string;
@@ -21,12 +22,43 @@ interface EvalResult {
 }
 
 const EvalHarness: React.FC = () => {
+  const navigate = useNavigate();
   const [userMessage, setUserMessage] = useState('');
   const [promptA, setPromptA] = useState('You are a helpful assistant.');
   const [promptB, setPromptB] = useState('You are a creative and detailed assistant.');
   const [isRunning, setIsRunning] = useState(false);
   const [currentResult, setCurrentResult] = useState<EvalResult | null>(null);
   const [results, setResults] = useState<EvalResult[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  // Function to load comparison history
+  const loadHistory = async () => {
+    try {
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+      const response = await fetch(`${serverUrl}/api/eval/results`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || 'mock-token'}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setResults(data.results || []);
+        console.log('Loaded comparison history:', data.results?.length || 0, 'results');
+      } else {
+        console.log('Failed to load comparison history, using empty state');
+      }
+    } catch (error) {
+      console.error('Error loading comparison history:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // Load comparison history on component mount
+  React.useEffect(() => {
+    loadHistory();
+  }, []);
 
   const runComparison = async () => {
     if (!userMessage.trim()) return;
@@ -52,7 +84,12 @@ const EvalHarness: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         setCurrentResult(result);
-        setResults(prev => [result, ...prev]);
+        console.log('New comparison completed:', result.id);
+        
+        // Reload history from database to ensure we have the latest data
+        setTimeout(() => {
+          loadHistory();
+        }, 500); // Small delay to ensure server has processed the save
       } else {
         // Fallback to mock data
         const mockResult: EvalResult = {
@@ -69,7 +106,9 @@ const EvalHarness: React.FC = () => {
           timestamp: new Date().toISOString(),
         };
         setCurrentResult(mockResult);
+        // For mock results, add to local state since they won't be in database
         setResults(prev => [mockResult, ...prev]);
+        console.log('Mock comparison added to local state:', mockResult.id);
       }
     } catch (error) {
       console.error('Comparison failed:', error);
@@ -88,7 +127,9 @@ const EvalHarness: React.FC = () => {
         timestamp: new Date().toISOString(),
       };
       setCurrentResult(mockResult);
+      // For error fallback, add to local state since they won't be in database
       setResults(prev => [mockResult, ...prev]);
+      console.log('Error fallback comparison added to local state:', mockResult.id);
     } finally {
       setIsRunning(false);
     }
@@ -121,11 +162,23 @@ const EvalHarness: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">LLM Eval Harness</h1>
-        <p className="text-muted-foreground">
-          Compare two prompts/models on the same user message
-        </p>
+      {/* Header with Back Button */}
+      <div className="flex items-center justify-between">
+        <Button
+          onClick={() => navigate('/chat')}
+          variant="outline"
+          size="sm"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Chat
+        </Button>
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold">LLM Eval Harness</h1>
+          <p className="text-muted-foreground">
+            Compare two prompts/models on the same user message
+          </p>
+        </div>
+        <div className="w-24"></div> {/* Spacer for centering */}
       </div>
 
       {/* Input Section */}
@@ -278,14 +331,29 @@ const EvalHarness: React.FC = () => {
       )}
 
       {/* Results History */}
-      {results.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Comparison History ({results.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {results.slice(0, 5).map((result) => (
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            Complete Comparison History 
+            {loadingHistory ? (
+              <span className="text-sm font-normal text-muted-foreground ml-2">Loading...</span>
+            ) : (
+              <span className="text-sm font-normal text-muted-foreground ml-2">({results.length} total)</span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingHistory ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : results.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No comparisons yet. Run your first comparison above!</p>
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {results.map((result) => (
                 <div key={result.id} className="border rounded-lg p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="font-medium text-sm">{result.userMessage}</p>
@@ -296,7 +364,7 @@ const EvalHarness: React.FC = () => {
                         </span>
                       )}
                       <span className="text-xs text-muted-foreground">
-                        {new Date(result.timestamp).toLocaleTimeString()}
+                        {new Date(result.timestamp).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -307,9 +375,9 @@ const EvalHarness: React.FC = () => {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

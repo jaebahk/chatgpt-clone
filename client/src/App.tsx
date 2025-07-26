@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginButton from './components/LoginButton';
 import AuthCallback from './components/AuthCallback';
@@ -78,6 +78,7 @@ const Landing: React.FC = () => {
 
 const Chat: React.FC = () => {
   const { user, logout, token } = useAuth();
+  const navigate = useNavigate();
   const [chats, setChats] = useState<Array<{id: string, title: string, updatedAt: string}>>([]);
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messages, setMessages] = useState<Array<{id: string, role: 'user' | 'assistant', content: string, timestamp: string}>>([]);
@@ -427,7 +428,7 @@ const Chat: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <span className="text-sm font-medium">Hello, {user?.name || 'Test User'}</span>
                 <Button
-                  onClick={() => window.location.href = '/eval'}
+                  onClick={() => navigate('/eval')}
                   variant="outline"
                   size="sm"
                 >
