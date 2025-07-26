@@ -7,54 +7,60 @@ import ChatSidebar from './components/ChatSidebar';
 import MessageList from './components/MessageList';
 import MessageInput from './components/MessageInput';
 import ErrorBoundary from './components/ErrorBoundary';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { MessageCircle, LogOut } from 'lucide-react';
 import './App.css';
 
 const Landing: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-            </svg>
-          </div>
-        </div>
-        <h2 className="mt-6 text-center text-4xl font-bold text-white">
-          Welcome to ChatGPT Clone
-        </h2>
-        <p className="mt-4 text-center text-lg text-gray-300">
-          Your AI-powered conversation assistant
-        </p>
-        <p className="mt-2 text-center text-sm text-gray-400">
-          Sign in to start chatting with advanced AI
-        </p>
-      </div>
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-gray-800 py-8 px-4 shadow-xl rounded-2xl border border-gray-700 sm:px-10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg space-y-8">
+        {/* Logo Section */}
+        <div className="text-center space-y-6">
           <div className="flex justify-center">
-            <LoginButton />
+            <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center shadow-xl ring-1 ring-primary/20">
+              <MessageCircle className="w-10 h-10 text-primary-foreground" />
+            </div>
           </div>
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-400">
-              Secure authentication powered by Google
+          <div className="space-y-3">
+            <h1 className="text-3xl font-bold tracking-tight">
+              Welcome to ChatGPT Clone
+            </h1>
+            <p className="text-base text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              Your AI-powered conversation assistant
+            </p>
+            <p className="text-sm text-muted-foreground/80">
+              Sign in to start chatting with advanced AI
             </p>
           </div>
         </div>
-      </div>
-      <div className="mt-8 text-center">
-        <div className="flex justify-center space-x-8 text-sm text-gray-400">
-          <div className="flex items-center">
-            <svg className="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-            Real-time responses
+
+        {/* Login Card */}
+        <Card className="shadow-xl border-0 bg-card/50 backdrop-blur-sm">
+          <CardContent className="p-8">
+            <div className="space-y-6">
+              <LoginButton />
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground/70">
+                  Secure authentication powered by Google
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Features */}
+        <div className="flex justify-center items-center space-x-8 text-sm text-muted-foreground/60">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>Real-time responses</span>
           </div>
-          <div className="flex items-center">
-            <svg className="w-4 h-4 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-            </svg>
-            Secure & Private
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span>Secure & Private</span>
           </div>
         </div>
       </div>
@@ -169,7 +175,7 @@ const Chat: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token || 'mock-token'}`,
         },
-        body: JSON.stringify({ title: 'New conversation' }),
+        body: JSON.stringify({}),
       });
 
       if (response.ok) {
@@ -180,9 +186,10 @@ const Chat: React.FC = () => {
         setMessages([]);
       } else {
         // Fallback to local chat creation
+        const chatId = `local_${Date.now()}`;
         const newChat = {
-          id: `local_${Date.now()}`,
-          title: 'New conversation',
+          id: chatId,
+          title: chatId.slice(-8),
           updatedAt: new Date().toISOString()
         };
         setChats([newChat, ...chats]);
@@ -191,9 +198,10 @@ const Chat: React.FC = () => {
       }
     } catch (error) {
       // Fallback to local chat creation
+      const chatId = `local_${Date.now()}`;
       const newChat = {
-        id: `local_${Date.now()}`,
-        title: 'New conversation',
+        id: chatId,
+        title: chatId.slice(-8),
         updatedAt: new Date().toISOString()
       };
       setChats([newChat, ...chats]);
@@ -399,26 +407,31 @@ const Chat: React.FC = () => {
       />
       
       <div className="flex-1 flex flex-col">
-        <nav className="bg-white shadow border-b">
-          <div className="px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16">
-              <div className="flex items-center">
-                <h1 className="text-xl font-semibold">ChatGPT Clone</h1>
+        <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="px-6 lg:px-8">
+            <div className="flex justify-between h-16 items-center">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                  <MessageCircle className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <h1 className="text-xl font-bold">ChatGPT Clone</h1>
               </div>
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">Hello, {user?.name || 'Test User'}</span>
-                <button
+                <span className="text-sm font-medium">Hello, {user?.name || 'Test User'}</span>
+                <Button
                   onClick={logout}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                  variant="outline"
+                  size="sm"
                 >
+                  <LogOut className="w-4 h-4 mr-2" />
                   Logout
-                </button>
+                </Button>
               </div>
             </div>
           </div>
         </nav>
         
-        <div className="flex-1 flex flex-col bg-white">
+        <div className="flex-1 flex flex-col">
           <MessageList messages={messages} isLoading={isLoading} />
           <MessageInput 
             onSendMessage={handleSendMessage} 

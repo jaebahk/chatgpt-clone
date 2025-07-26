@@ -1,4 +1,9 @@
 import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Plus, Trash2, MessageCircle } from 'lucide-react';
 
 interface Chat {
   id: string;
@@ -22,60 +27,69 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onDeleteChat,
 }) => {
   return (
-    <div className="w-64 bg-gray-900 text-white flex flex-col h-screen flex-shrink-0">
-      <div className="p-4 border-b border-gray-700">
-        <button
+    <div className="w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex flex-col h-screen">
+      <div className="p-4">
+        <Button 
           onClick={onNewChat}
-          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+          className="w-full"
+          size="sm"
         >
-          + New Chat
-        </button>
+          <Plus className="w-4 h-4 mr-2" />
+          New Chat
+        </Button>
       </div>
       
-      <div className="flex-1 overflow-y-auto">
+      <Separator />
+      
+      <ScrollArea className="flex-1">
         {chats.length === 0 ? (
-          <div className="p-4 text-gray-400 text-center">
-            No conversations yet
+          <div className="p-4 text-center text-muted-foreground">
+            <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No conversations yet</p>
           </div>
         ) : (
-          <div className="p-2">
+          <div className="p-2 space-y-1">
             {chats.map((chat) => (
-              <div
+              <Card
                 key={chat.id}
-                className={`group rounded-lg mb-1 transition-colors ${
+                className={`group transition-all duration-200 cursor-pointer ${
                   activeChat === chat.id
-                    ? 'bg-gray-700 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    ? 'bg-accent border-accent-foreground/20'
+                    : 'hover:bg-accent/50 border-transparent'
                 }`}
               >
-                <div className="flex items-center">
+                <div className="flex items-center p-3">
                   <button
                     onClick={() => onChatSelect(chat.id)}
-                    className="flex-1 text-left p-3"
+                    className="flex-1 text-left"
                   >
-                    <div className="truncate font-medium">{chat.title}</div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="flex items-center mb-1">
+                      <div className={`w-2 h-2 rounded-full mr-2 shrink-0 ${
+                        activeChat === chat.id ? 'bg-primary' : 'bg-muted-foreground/50'
+                      }`}></div>
+                      <div className="truncate font-medium text-sm">{chat.title}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground ml-4">
                       {new Date(chat.updatedAt).toLocaleDateString()}
                     </div>
                   </button>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 h-8 w-8 text-muted-foreground hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDeleteChat(chat.id);
                     }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-600 rounded mr-2"
-                    title="Delete chat"
                   >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </button>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}
-      </div>
+      </ScrollArea>
     </div>
   );
 };

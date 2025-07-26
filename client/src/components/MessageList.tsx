@@ -1,4 +1,8 @@
 import React from 'react';
+import { Card } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { User, Bot, Loader2 } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -14,50 +18,62 @@ interface MessageListProps {
 
 const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.length === 0 ? (
-        <div className="text-center text-gray-500 mt-8">
-          <h3 className="text-lg font-medium mb-2">Start a conversation</h3>
-          <p>Type a message below to begin chatting</p>
-        </div>
-      ) : (
-        messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+    <ScrollArea className="flex-1 px-4">
+      <div className="space-y-6 py-4 max-w-4xl mx-auto">
+        {messages.length === 0 ? (
+          <div className="text-center text-muted-foreground mt-8">
+            <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <h3 className="text-lg font-medium mb-2">Start a conversation</h3>
+            <p>Type a message below to begin chatting</p>
+          </div>
+        ) : (
+          messages.map((message) => (
             <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                message.role === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-900'
-              }`}
+              key={message.id}
+              className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
             >
-              <div className="whitespace-pre-wrap">{message.content}</div>
-              <div
-                className={`text-xs mt-1 ${
-                  message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                }`}
-              >
-                {new Date(message.timestamp).toLocaleTimeString()}
+              <Avatar className="w-8 h-8 shrink-0">
+                <AvatarFallback className={message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
+                  {message.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className={`flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start'} max-w-[80%]`}>
+                <Card className={`p-4 ${
+                  message.role === 'user' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted'
+                }`}>
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {message.content}
+                  </div>
+                </Card>
+                <div className="text-xs text-muted-foreground mt-1 px-1">
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </div>
               </div>
             </div>
+          ))
+        )}
+        
+        {isLoading && (
+          <div className="flex gap-3">
+            <Avatar className="w-8 h-8 shrink-0">
+              <AvatarFallback className="bg-muted">
+                <Bot className="w-4 h-4" />
+              </AvatarFallback>
+            </Avatar>
+            
+            <Card className="p-4 bg-muted">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">AI is thinking...</span>
+              </div>
+            </Card>
           </div>
-        ))
-      )}
-      
-      {isLoading && (
-        <div className="flex justify-start">
-          <div className="bg-gray-200 text-gray-900 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </ScrollArea>
   );
 };
 

@@ -92,10 +92,11 @@ export async function updateUserLastLogin(id: string): Promise<void> {
 
 // Chat operations
 export async function createChat(userId: string, title?: string): Promise<Chat> {
+  const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const chat: Chat = {
-    id: `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: chatId,
     userId,
-    title: title || 'New conversation',
+    title: title || chatId.slice(-8),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -278,10 +279,11 @@ export const mockFunctions = {
 
   async createChat(userId: string, title?: string): Promise<Chat> {
     console.log('Mock: Creating chat for user', userId);
+    const chatId = `mock_chat_${Date.now()}`;
     return {
-      id: `mock_chat_${Date.now()}`,
+      id: chatId,
       userId,
-      title: title || 'New conversation',
+      title: title || chatId.slice(-8),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
