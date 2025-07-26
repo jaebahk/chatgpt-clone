@@ -5,15 +5,18 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token || token === 'mock-token') {
-    // Allow mock access for development
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  // Allow mock token for development/testing
+  if (token === 'mock-token') {
     (req as any).user = {
       id: 'mock-user-id',
       email: 'test@example.com',
       name: 'Test User'
     };
-    next();
-    return;
+    return next();
   }
 
   try {
@@ -21,12 +24,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     (req as any).user = user;
     next();
   } catch (error) {
-    // Fallback to mock user for development
-    (req as any).user = {
-      id: 'mock-user-id', 
-      email: 'test@example.com',
-      name: 'Test User'
-    };
-    next();
+    console.log('Token verification failed:', error);
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };

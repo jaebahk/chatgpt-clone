@@ -197,6 +197,31 @@ cd server
 npm test
 ```
 
+## 🧪 Bonus Feature: LLM Eval Harness
+
+The application includes an **LLM Eval Harness** for comparing different prompts and models:
+
+### Features
+- **Side-by-side comparison**: Test two different prompts on the same user message
+- **Performance metrics**: Capture response latency and token usage
+- **Rating system**: Thumbs up/down to rate which response is better
+- **Results history**: View past comparisons and their ratings
+- **Real-time testing**: Uses OpenAI API for actual model comparisons
+
+### Usage
+1. Navigate to `/eval` or click "Eval Harness" in the chat interface
+2. Enter a user message to test both prompts with
+3. Configure Prompt A and Prompt B with different system instructions
+4. Click "Run Comparison" to see side-by-side results
+5. Rate which response is better using the thumbs up buttons
+6. View comparison history and performance metrics
+
+### Technical Implementation
+- **Backend API** (`/api/eval/compare`): Runs parallel OpenAI requests with timing
+- **Performance tracking**: Measures latency and token usage for each prompt
+- **Rating storage**: Logs user preferences for prompt effectiveness
+- **Fallback support**: Works with mock data when OpenAI API unavailable
+
 ## 📁 Project Structure
 
 ```
@@ -204,6 +229,8 @@ chatgpt-clone/
 ├── client/                 # React frontend
 │   ├── src/
 │   │   ├── components/     # Reusable UI components
+│   │   │   ├── EvalHarness.tsx  # LLM evaluation interface
+│   │   │   └── ...
 │   │   ├── context/        # React context providers
 │   │   ├── lib/           # Utility functions
 │   │   └── App.tsx        # Main application
@@ -211,6 +238,8 @@ chatgpt-clone/
 ├── server/                # Node.js backend
 │   ├── src/
 │   │   ├── routes/        # Express route handlers
+│   │   │   ├── eval.ts    # Evaluation API endpoints
+│   │   │   └── ...
 │   │   ├── services/      # Business logic
 │   │   └── server.ts      # Express server setup
 │   └── package.json

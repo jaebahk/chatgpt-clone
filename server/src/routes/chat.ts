@@ -65,11 +65,40 @@ router.post('/stream', async (req, res) => {
     console.log('Using OpenAI streaming response');
     let assistantResponse = '';
     try {
-      // Create OpenAI streaming completion
+      // Get existing conversation history
+      const existingMessages = await db.getChatMessages(chatId || 'default-chat');
+      console.log('Found existing messages:', existingMessages.length);
+      
+      // Convert to OpenAI format
+      const conversationHistory = existingMessages.map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content
+      }));
+      
+      // Add current user message
+      conversationHistory.push({ role: 'user', content: message });
+      
+      // Truncate if too many messages (keep last 20 messages to stay within token limits)
+      const maxMessages = 20;
+      const recentHistory = conversationHistory.slice(-maxMessages);
+      
+      // Add system prompt at the beginning
+      const messagesToSend = [
+        {
+          role: 'system' as const,
+          content: 'You are a helpful, knowledgeable assistant. Maintain context from our conversation and provide thoughtful, concise responses.'
+        },
+        ...recentHistory
+      ];
+      
+      console.log('Sending conversation history with', messagesToSend.length, 'messages to OpenAI');
+      
+      // Create OpenAI streaming completion with full conversation
       const stream = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: message }],
+        messages: messagesToSend,
         stream: true,
+        max_tokens: 500, // Limit response length to manage costs
       });
 
       for await (const chunk of stream) {

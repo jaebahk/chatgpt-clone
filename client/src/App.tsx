@@ -7,14 +7,22 @@ import ChatSidebar from './components/ChatSidebar';
 import MessageList from './components/MessageList';
 import MessageInput from './components/MessageInput';
 import ErrorBoundary from './components/ErrorBoundary';
+import EvalHarness from './components/EvalHarness';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { MessageCircle, LogOut } from 'lucide-react';
+import { MessageCircle, LogOut, FlaskConical } from 'lucide-react';
 import './App.css';
 
 const Landing: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  // Redirect to chat if already authenticated
+  if (!loading && user) {
+    return <Navigate to="/chat" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-4">
       <div className="w-full max-w-lg space-y-8">
@@ -419,6 +427,14 @@ const Chat: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <span className="text-sm font-medium">Hello, {user?.name || 'Test User'}</span>
                 <Button
+                  onClick={() => window.location.href = '/eval'}
+                  variant="outline"
+                  size="sm"
+                >
+                  <FlaskConical className="w-4 h-4 mr-2" />
+                  Eval Harness
+                </Button>
+                <Button
                   onClick={logout}
                   variant="outline"
                   size="sm"
@@ -454,10 +470,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     );
   }
 
-  // For testing: allow access without auth
+  // Redirect to landing page if not authenticated
   if (!user) {
-    // Mock user for testing
-    return <>{children}</>;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -476,6 +491,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Chat />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/eval"
+              element={
+                <ProtectedRoute>
+                  <EvalHarness />
                 </ProtectedRoute>
               }
             />

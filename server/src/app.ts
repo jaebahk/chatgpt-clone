@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import authRoutes from './routes/auth';
 import chatRoutes from './routes/chat';
+import evalRoutes from './routes/eval';
 import { authenticateToken } from './middleware/auth';
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/auth', authRoutes);
 app.use('/api/chat', authenticateToken, chatRoutes);
+app.use('/api/eval', evalRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

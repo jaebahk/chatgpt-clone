@@ -32,3 +32,4 @@ Thumbs.db
 # Project specific
 server/.env
 client/.env
+client/public/
