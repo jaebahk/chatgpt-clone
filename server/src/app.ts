@@ -22,6 +22,20 @@ app.use('/auth', authRoutes);
 app.use('/api/chat', authenticateToken, chatRoutes);
 app.use('/api/eval', evalRoutes);
 
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'ChatGPT Clone API Server',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      auth: '/auth/google',
+      chat: '/api/chat',
+      eval: '/api/eval'
+    }
+  });
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });

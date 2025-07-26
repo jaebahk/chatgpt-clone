@@ -185,18 +185,6 @@ The application will be available at:
 - **Delete functionality** with proper state management
 - **Responsive layout** that works on mobile
 
-## 🧪 Testing
-
-```bash
-# Run client tests
-cd client
-npm test
-
-# Run server tests  
-cd server
-npm test
-```
-
 ## 🧪 Bonus Feature: LLM Eval Harness
 
 The application includes an **LLM Eval Harness** for comparing different prompts and models:
