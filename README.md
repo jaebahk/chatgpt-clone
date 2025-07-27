@@ -4,10 +4,11 @@ A full-stack ChatGPT-style application built with React, Node.js, and TypeScript
 
 ## 🚀 Features
 
-- **Real-time Chat**: Streaming responses from OpenAI API
+- **Real-time Chat**: Streaming responses from OpenAI API with conversation memory
 - **Google OAuth**: Secure authentication with session management
 - **Chat Management**: Create, switch between, and delete conversations
 - **Persistent Storage**: Chat history and user data stored in DynamoDB
+- **LLM Eval Harness**: Compare prompts side-by-side with performance metrics and ratings
 - **Modern UI**: Beautiful interface built with shadcn/ui components
 - **Responsive Design**: Works seamlessly across devices
 
@@ -68,7 +69,7 @@ npm install
 ### 3. AWS DynamoDB Setup
 
 1. Go to [AWS Console](https://console.aws.amazon.com/dynamodb/)
-2. Create three tables with the following configurations:
+2. Create four tables with the following configurations:
 
 **Users Table:**
 - Table name: `Users`
@@ -80,6 +81,10 @@ npm install
 
 **Messages Table:**
 - Table name: `Messages`
+- Partition key: `id` (String)
+
+**EvalResult Table:**
+- Table name: `EvalResult`
 - Partition key: `id` (String)
 
 3. Note your AWS region (e.g., `us-east-2`)
